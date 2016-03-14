@@ -1,0 +1,23 @@
+{
+  "name": "jmap-proxy",
+  "version": "1.0.0",
+  "description": "A wrapper around the official JMAP Proxy (https://proxy.jmap.io) that exposes a stubbed Authentication endpoint and Event Source with CORS support.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./index.js"
+  },
+  "keywords": [
+    "jmap",
+    "proxy"
+  ],
+  "author": "Zac Barton",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "cors": "^2.7.1",
+    "eventsource": "^0.2.1",
+    "express": "^4.13.4",
+    "request": "^2.69.0",
+    "server-sent-events": "0.0.4"
+  }
+}
