@@ -33,41 +33,52 @@ app.use(cors());
 // Test endpoint that fetches mailboxes.
 app.get('/test', (req, res) => {
   request.post(API_URL, { body: [['getMailboxes', {}, '#0']], json: true }, (err, response, body) => {
-      console.log(API_URL)
     res.send(`<pre>${JSON.stringify(body, null, 2)}</pre>`);
   });
 });
 
-// Auth service autodiscovery.
+// Authentication service autodiscovery.
 app.head('/.well-known/jmap', (req, res) => {
   res.status(301);
   res.header('Location', `${LOCAL_PROXY_URL}/auth`);
   res.end();
 });
+app.head('/auth', (req, res) => res.end());
 
 // Stubbed Authentication endpoint.
 // :IMPORTANT: always successful.
-app.all('/auth', bodyParser.json(), (req, res) => {
-  const randomToken = Math.random().toString(36).substr(2, 20);
-  let payload;
-
+app.post('/auth', bodyParser.json(), (req, res) => {
+  // Stage 1.
   if (req.body.username) {
-    payload = {
-      continuationToken: randomToken,
+    const continuationToken = new Buffer(req.body.username).toString('base64');
+
+    res.json({
+      continuationToken,
       methods: ['password'],
       prompt: null,
-    };
-  } else {
-    payload = {
-      accessToken: randomToken,
+    });
+    return;
+  }
+
+  // Stage 2.
+  if (req.body.token) {
+    const username = new Buffer(req.body.token, 'base64').toString();
+    const accessToken = Math.random().toString(36).substr(2, 20);
+
+    res.status(201).json({
+      username,
+      accessToken,
+      versions: [1],
+      extensions: [],
       apiUrl: API_URL,
       uploadUrl: UPLOAD_URL,
       downloadUrl: DOWNLOAD_URL,
       eventSourceUrl: LOCAL_EVENTSOURCE_URL,
-    };
+    });
+    return;
   }
 
-  res.json(payload);
+  res.status(400).end();
 });
 
 // Proxied EventSource.
@@ -80,8 +91,12 @@ app.get('/events', sse, (req, res) => {
   eventSource.onerror = (err) => {
     console.error('EventSource error', err);
   }
+  eventSource.onmessage = (event) => {
+    console.log('EventSource message', event.data);
+  }
 
   eventSource.addEventListener('state', event => {
+    console.log('EventSource state', event);
     res.sse(`event: ${event.type}\n`)
     res.sse(`data: ${event.data}\n\n`);
   });
